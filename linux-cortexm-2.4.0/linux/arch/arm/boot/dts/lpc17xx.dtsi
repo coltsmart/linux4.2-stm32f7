@@ -1,0 +1,249 @@
+/*
+ * Copyright (C) 2017 Emcraft Systems
+ * Sergei Miroshnichenko <sergeimir@emcraft.com>
+ *
+ * License terms:  GNU General Public License (GPL), version 2
+ */
+/dts-v1/;
+
+#include "armv7-m.dtsi"
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/clock/lpc17xx-clock.h>
+#include <dt-bindings/reset/lpc17xx-resets.h>
+#include <dt-bindings/pinctrl/lpc17xx.h>
+
+/* From linux/amba/pl08x.h: */
+#define PL08X_AHB1 (1 << 0)
+#define PL08X_AHB2 (1 << 1)
+
+/*
+ * AHB1: uart[0,1], ssp1, can[1,2], i2c[0,1], timer[0,1],
+ *       pwm[0,1], adc, pinctrl, gpio interrupts, rtc.
+ *
+ * AHB2: uart[2,3,4], ssp[0,2], i2s, i2c2, timer[2,3],
+ *       sdio, dac, pwm, quadrature, exti, sysctrl.
+ */
+
+#define LPC17XX_IRQ_WDT		0
+#define LPC17XX_IRQ_TIM0	1
+#define LPC17XX_IRQ_TIM1	2
+#define LPC17XX_IRQ_TIM2	3
+#define LPC17XX_IRQ_TIM3	4
+#define LPC17XX_IRQ_UART0	5
+#define LPC17XX_IRQ_UART1	6
+#define LPC17XX_IRQ_UART2	7
+#define LPC17XX_IRQ_UART3	8
+#define LPC17XX_IRQ_PWM1	9
+#define LPC17XX_IRQ_I2C0	10
+#define LPC17XX_IRQ_I2C1	11
+#define LPC17XX_IRQ_I2C2	12
+#define LPC17XX_IRQ_SSP0	14
+#define LPC17XX_IRQ_SSP1	15
+#define LPC17XX_IRQ_PLL0	16
+#define LPC17XX_IRQ_RTC		17
+#define LPC17XX_IRQ_EINT0	18
+#define LPC17XX_IRQ_EINT1	19
+#define LPC17XX_IRQ_EINT2	20
+#define LPC17XX_IRQ_EINT3	21
+#define LPC17XX_IRQ_ADC		22
+#define LPC17XX_IRQ_BOD		23
+#define LPC17XX_IRQ_USB		24
+#define LPC17XX_IRQ_CAN		25
+#define LPC17XX_IRQ_DMA		26
+#define LPC17XX_IRQ_I2S		27
+#define LPC17XX_IRQ_ENET	28
+#define LPC17XX_IRQ_MMC		29
+#define LPC17XX_IRQ_MOTOR_PWM	30
+#define LPC17XX_IRQ_QUADRATURE	31
+#define LPC17XX_IRQ_PLL1	32
+#define LPC17XX_IRQ_USB_ACTVTY	33
+#define LPC17XX_IRQ_CAN_ACTVTY	34
+#define LPC17XX_IRQ_UART4	35
+#define LPC17XX_IRQ_SSP2	36
+#define LPC17XX_IRQ_LCD		37
+#define LPC17XX_IRQ_GPIO	38
+#define LPC17XX_IRQ_PWM0	39
+#define LPC17XX_IRQ_EEPROM	40
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	compatible = "nxp,lpc178x/7x";
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		cpu@0 {
+			compatible = "arm,cortex-m4";
+			device_type = "cpu";
+			reg = <0x0>;
+		};
+	};
+
+	aliases {
+		gpio0 = &gpio;
+		serial0 = &uart0;
+		serial2 = &uart2;
+		serial3 = &uart3;
+		ethernet0 = &mac;
+	};
+
+	clocks {
+		xtal: xtal {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <12000000>;
+		};
+	};
+
+	soc {
+		clks: clks@400fc000 {
+			compatible = "nxp,lpc17xx-clock";
+			reg = <0x400fc000 0x1000>;
+			clocks = <&xtal>;
+			clock-names = "xtal";
+			#clock-cells = <1>;
+		};
+
+		rst: reset@400fc1cc {
+			#reset-cells = <1>;
+			compatible = "nxp,lpc17xx-reset";
+			reg = <0x400fc1cc 0x8>;
+		};
+
+		pinctrl: pinctrl@4002c000 {
+			reg = <0x4002c000 0x1000>;
+			compatible = "nxp,lpc17xx-pinctrl";
+		};
+
+		gpio: gpio@20098000 {
+			compatible = "nxp,lpc17xx-gpio";
+			reg = <0x20098000 0x4000>;
+			clocks = <&clks CLOCK_GPIO>;
+			resets = <&rst RST_GPIO>;
+			gpio-controller;
+			#gpio-cells = <3>; /* bank, pin, flags */
+			status = "okay";
+		};
+
+		timer0: timer@40004000 {
+			compatible = "nxp,lpc3220-timer";
+			reg = <0x40004000 0x74>;
+			interrupts = <LPC17XX_IRQ_TIM0 0>;
+			clocks = <&clks CLOCK_TIM0>;
+			clock-names = "timerclk";
+			resets = <&rst RST_TIM0>;
+			status = "disabled";
+		};
+
+		timer1: timer@40008000 {
+			compatible = "nxp,lpc3220-timer";
+			reg = <0x40008000 0x74>;
+			interrupts = <LPC17XX_IRQ_TIM1 0>;
+			clocks = <&clks CLOCK_TIM1>;
+			clock-names = "timerclk";
+			resets = <&rst RST_TIM1>;
+			status = "disabled";
+		};
+
+		timer2: timer@40090000 {
+			compatible = "nxp,lpc3220-timer";
+			reg = <0x40090000 0x74>;
+			interrupts = <LPC17XX_IRQ_TIM2 0>;
+			clocks = <&clks CLOCK_TIM2>;
+			clock-names = "timerclk";
+			resets = <&rst RST_TIM2>;
+			status = "disabled";
+		};
+
+		timer3: timer@40094000 {
+			compatible = "nxp,lpc3220-timer";
+			reg = <0x40094000 0x74>;
+			interrupts = <LPC17XX_IRQ_TIM3 0>;
+			clocks = <&clks CLOCK_TIM3>;
+			clock-names = "timerclk";
+			resets = <&rst RST_TIM3>;
+			status = "disabled";
+		};
+
+		dma: dma-controller@20080000 {
+			compatible = "arm,pl080", "arm,primecell";
+			reg = <0x20080000 0x1000>;
+			interrupts = <LPC17XX_IRQ_DMA 0>;
+			arm,primecell-periphid = <0x00041080>;
+			#dma-cells = <2>;
+			dma-channels = <8>;
+			dma-requests = <16>;
+			no-bus-selection-support;
+			memcpy-burst-size = <256>;
+			memcpy-bus-width = <32>;
+			clocks = <&clks CLOCK_GPDMA>;
+			clock-names = "apb_pclk";
+			resets = <&rst RST_GPDMA>;
+			status = "okay";
+		};
+
+		uart0: serial@4000c000 {
+			compatible = "nxp,lpc1850-uart", "ns16550a";
+			reg = <0x4000c000 0x1000>;
+			interrupts = <LPC17XX_IRQ_UART0 0>;
+			status = "disabled";
+			clocks = <&clks CLOCK_UART0>, <&clks CLOCK_UART0>;
+			clock-names = "uartclk", "reg";
+			resets = <&rst RST_UART0>;
+			/* DMA for UART3 conflicts with UART0 */
+			dmas = <&dma 10 PL08X_AHB1>, <&dma 11 PL08X_AHB1>;
+			dma-names = "tx", "rx";
+		};
+
+		uart2: serial@40098000 {
+			compatible = "nxp,lpc1850-uart", "ns16550a";
+			reg = <0x40098000 0x1000>;
+			interrupts = <LPC17XX_IRQ_UART2 0>;
+			status = "disabled";
+			clocks = <&clks CLOCK_UART2>, <&clks CLOCK_UART2>;
+			clock-names = "uartclk", "reg";
+			resets = <&rst RST_UART2>;
+			dmas = <&dma 14 PL08X_AHB2>, <&dma 15 PL08X_AHB2>;
+			dma-names = "tx", "rx";
+		};
+
+		uart3: serial@4009c000 {
+			compatible = "nxp,lpc1850-uart", "ns16550a";
+			reg = <0x4009c000 0x1000>;
+			interrupts = <LPC17XX_IRQ_UART3 0>;
+			status = "disabled";
+			clocks = <&clks CLOCK_UART3>, <&clks CLOCK_UART3>;
+			clock-names = "uartclk", "reg";
+			resets = <&rst RST_UART3>;
+			/* DMA for UART3 conflicts with UART0 */
+			#if 0
+			dmas = <&dma 10 PL08X_AHB2>, <&dma 11 PL08X_AHB2>;
+			dma-names = "tx", "rx";
+			#else
+			dmas = <>;
+			#endif
+		};
+
+		mac: ethernet@20084000 {
+			compatible = "nxp,lpc-eth";
+			reg = <0x20084000 0x1000>;
+			interrupts = <LPC17XX_IRQ_ENET IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&clks CLOCK_ENET>;
+			resets = <&rst RST_ENET>;
+			status = "disabled";
+		};
+
+		rtc: rtc@40024000 {
+			compatible = "nxp,lpc1788-rtc";
+			reg = <0x40024000 0x1000>;
+			clocks = <&clks CLOCK_RTC>, <&clks CLOCK_RTC>;
+			clock-names = "rtc", "reg";
+			resets = <&rst RST_RTC>;
+			interrupts = <LPC17XX_IRQ_RTC 0>;
+			status = "disabled";
+		};
+	};
+};

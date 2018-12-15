@@ -1,0 +1,486 @@
+/*
+ * EmCraft STM32F7-SOM SOM-BSB-UCL Starter Kit device tree
+ *
+ * Copyright 2016
+ * Yuri Tikhonov, Emcraft Systems, <yur@emcraft.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * publishhed by the Free Software Foundation.
+ */
+
+/dts-v1/;
+#include "stm32f7-som.dts"
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+
+/*
+ * Pioneer 600 is an extension board for Raspberry Pi, which is used
+ * to test compatibility with the Emcraft STM32F7-SOM SOM-BSB-UCL Starter Kit.
+ */
+#undef PIONEER_600
+
+/ {
+	chosen {
+		bootargs = "console=ttyS0,115200";
+		linux,stdout-path = &usart1;
+	};
+
+	stm_flash {
+		status = "okay";
+
+		stm_flash_uboot@0x000000 {
+			label = "stm_flash_uboot";
+			reg = <0x000000 0x020000>;
+		};
+
+		stm_flash_unused@0x020000 {
+			label = "stm_flash_unused";
+			reg = <0x040000 0x0c0000>;
+		};
+	};
+
+	nor_flash {
+		status = "okay";
+
+		nor_flash_uboot_env@0x0 {
+			label = "nor_flash_uboot_env";
+			reg = <0x00000 0x20000>;
+		};
+
+		nor_flash_splash@0x20000 {
+			label = "nor_flash_uboot_splash";
+			reg = <0x20000 0x80000>;
+		};
+
+		nor_flash_linux_image@0xa0000 {
+			label = "nor_flash_linux_image";
+			reg = <0xa0000 0xa00000>;
+		};
+
+		nor_flash_jffs2@0xea0000 {
+			label = "nor_flash_jffs2";
+			reg = <0xaa0000 0x560000>;
+		};
+	};
+
+	pin-controller {
+		gpio {
+			pinctrl_inputs: ins {
+				st,pins {
+					btn.1 = <&gpioa 0 IN PULL_UP
+						 PUSH_PULL LOW_SPEED>;
+					btn.2 = <&gpioi 9 IN PULL_UP
+						 PUSH_PULL LOW_SPEED>;
+				};
+			};
+			pinctrl_outputs: outs {
+				st,pins {
+					DS1 = <&gpiod 3 OUT NO_PULL
+						 PUSH_PULL LOW_SPEED>;
+					DS2 = <&gpioh 13 OUT NO_PULL
+						 PUSH_PULL LOW_SPEED>;
+				};
+			};
+
+			pinctrl_pwms: pwms {
+				st,pins {
+					dim = <&gpioi 0 ALT2
+					       NO_PULL PUSH_PULL LOW_SPEED>;
+				};
+			};
+		};
+
+		spi_5 {
+			pinctrl_spi_5: spi_5-0 {
+				st,pins {
+					clk = <&gpiof 7 ALT5
+						PULL_UP PUSH_PULL FAST_SPEED>;
+					di  = <&gpioh 7 ALT5
+						PULL_UP PUSH_PULL FAST_SPEED>;
+					do  = <&gpiof 9 ALT5
+						PULL_UP PUSH_PULL FAST_SPEED>;
+				};
+			};
+		};
+	};
+
+	inputs {
+		compatible = "gpio-keys";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_inputs>;
+
+		input@1 {
+			label = "Button 1 (wake-up)";
+			gpios = <&gpioa 0 GPIO_ACTIVE_LOW>;
+			linux,code = <116>;
+			gpio-key,wakeup;
+		};
+
+		input@2 {
+			label = "Button 2";
+			gpios = <&gpioi 9 GPIO_ACTIVE_LOW>;
+			linux,code = <80>;
+		};
+	};
+
+	outputs {
+		compatible = "gpio-leds";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_outputs>;
+
+		DS1 {
+			label = "DS1";
+			gpios = <&gpiod 3 GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+
+		DS2 {
+			label = "DS2";
+			gpios = <&gpioh 13 GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+	};
+
+	pwm0: pwm0 {
+		compatible = "st,stm32-pwm";
+		timer = <&timer5 5 4>;
+		#pwm-cells = <1>;
+		high-on-init;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_pwms>;
+	};
+
+	backlight: backlight {
+		compatible = "pwm-backlight";
+		pwms = <&pwm0 50000>;
+		brightness-levels = <0 15 39 63 87 111 135 159 183 207 231 255>;
+		default-brightness-level = <11>;
+	};
+
+	audio_osc: oscillator {
+		compatible = "fixed-clock";
+		#clock-cells = <1>;
+		clock-frequency  = <12000000>;
+		clock-accuracy = <50000>;
+	};
+
+	sound {
+		compatible = "st,stm32-audio-nau8822";
+		audio-cpu = <&sai_2>;
+		audio-codec = <&nau8822>;
+	};
+
+#if defined(PIONEER_600)
+	leds {
+		compatible = "gpio-leds";
+
+		/*
+		 * The Pioneer's P25 pin is not accessible from STM32F7-SOM. We
+		 * can access P2, so here we control P2, and you should connect
+		 * a wire from P2 to P25 on the Pioneer board
+		 */
+		pioneer_led1 {
+			label = "PIONEER_LED1";
+			gpios = <&gpioi 2 GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+
+		pioneer_led2 {
+			label = "PIONEER_LED2";
+			gpios = <&pioneer600_gpio 4 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+	};
+
+	onewire@0 {
+		compatible = "w1-gpio";
+		gpios = <&gpioa 8 0>;
+		status = "okay";
+	};
+#endif /* PIONEER_600 */
+};
+
+/*
+ * Enable DMAs which are used for xfer with some peripheral
+ */
+&dma1 {
+	status = "okay";
+};
+&dma2 {
+	status = "okay";
+};
+
+/*
+ * UART interfaces
+ */
+&usart1 {
+	status = "okay";
+	st,use-dma-rx;
+	st,use-dma-tx;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usart1>;
+};
+
+&usart6 {
+	status = "okay";
+	st,use-dma-rx;
+	st,use-dma-tx;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usart6>;
+};
+
+/*
+ * Ethernet controller
+ */
+&mac {
+	status = "okay";
+	phy-mode = "rmii";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_mac_rmii>;
+};
+
+/*
+ * USB interfaces.
+ * Select the role of the appropriate interface by specifying
+ * 'host'/'peripheral' value in 'dr_mode' property
+ */
+&usb_hs {
+	status = "okay";
+	dr_mode = "host";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usb_hs>;
+	usb2-phy = <&usb_phy_hs>;
+	g-gpio = <0x210000>;
+
+	/*
+	 * g-xxx properties are sizes in words.
+	 * Overall FIFO size is 4024 bytes (1006 words).
+	 * High-speed maximum packet sizes:
+	 * - CTL (64), BLK (512), INT (1024), ISO (1024)
+	 *
+	 * High-speed ACM Serial gadget configuration:
+	 * - CTL IN/OUT (64), BLK IN/OUT (512), INT IN (10)
+	 * - so FIFO distribution may be optimized for ACM gadget:
+	 *      g-rx-fifo-size = <512>;
+	 *      g-np-tx-fifo-size = <64>;
+	 *      g-tx-fifo-size = <52 378>;
+	 *
+	 * High-speed Mass-Storage gadget configuration:
+	 * - CTL IN/OUT (64), BLK IN/OUT (512)
+	 * - so FIFO distribution may be optimized for Mass-Storage gadget:
+	 *      g-rx-fifo-size = <564>;
+	 *      g-np-tx-fifo-size = <64>;
+	 *      g-tx-fifo-size = <378>;
+	 */
+	g-rx-fifo-size = <512>;
+	g-np-tx-fifo-size = <64>;
+	g-tx-fifo-size = <52 378>;
+};
+&usb_fs {
+	status = "okay";
+	dr_mode = "host";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usb_fs>;
+	usb2-phy = <&usb_phy_fs>;
+	g-gpio = <0x210000>;
+	pwr-en-gpios = <&gpioh 10 GPIO_ACTIVE_HIGH>;
+
+	/*
+	 * g-xxx properties are sizes in words.
+	 * Overall FIFO size is 1280 bytes (320 words).
+	 * Full-speed maximum packet sizes:
+	 * - CTL (64), BLK (64), INT (64), ISO (1023)
+	 *
+	 * Full-speed ACM Serial gadget configuration:
+	 * - CTL IN/OUT (64), BLK IN/OUT (64), INT IN (10)
+	 * - so FIFO distribution may be optimized for ACM gadget:
+	 *	g-rx-fifo-size = <160>;
+	 *	g-np-tx-fifo-size = <64>;
+	 *	g-tx-fifo-size = <32 64>;
+	 *
+	 * Full-speed Mass-Storage gadget configuration:
+	 * - CTL IN/OUT (64), BLK IN/OUT (64)
+	 * - so FIFO distribution may be optimized for Mass-Storage gadget:
+	 *	g-rx-fifo-size = <160>;
+	 *	g-np-tx-fifo-size = <64>;
+	 *	g-tx-fifo-size = <96>;
+	 */
+	g-rx-fifo-size = <160>;
+	g-np-tx-fifo-size = <64>;
+	g-tx-fifo-size = <32 64>;
+};
+
+/*
+ * I2C interfaces
+ */
+&i2c_1 {
+	status = "okay";
+	st,i2c-clk = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c_1>;
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	/*
+	 * To avoid LCD glitching we don't reset TS chip, and don't configure
+	 * its i2c address. Instead just check it on both possible addresses.
+	 */
+	goodix14: touch@14 {
+		compatible = "goodix,gt911";
+		reg = <0x14>;
+		irq-gpios = <&gpioi 10 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpioh 8 GPIO_ACTIVE_LOW>;
+		power-off-suspend;
+		no-probe-reset;
+	};
+	goodix5d: touch@5d {
+		compatible = "goodix,gt911";
+		reg = <0x5d>;
+		irq-gpios = <&gpioi 10 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpioh 8 GPIO_ACTIVE_LOW>;
+		power-off-suspend;
+		no-probe-reset;
+	};
+
+	/*
+	 * Audio codec
+	 */
+	nau8822: codec@1a {
+		#sound-dai-cells = <0>;
+		compatible = "nuvoton,nau8822";
+		reg = <0x1a>;
+		clock-names = "mclk";
+		clocks = <&audio_osc 0>;
+	};
+};
+
+&i2c_4 {
+	status = "okay";
+	st,i2c-clk = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c_4>;
+
+#if defined(PIONEER_600)
+	pioneer600_gpio: pioneer600@20 {
+		compatible = "nxp,pcf8574";
+		reg = <0x20>;
+
+		gpio-controller;
+		#gpio-cells = <2>;
+	};
+#endif
+};
+
+/*
+ * SPI interfaces
+ */
+&spi_5 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_spi_5>;
+
+	cs-gpios = <&gpiof 6 OUT>;
+	timeouts = <3>;
+
+#if defined(PIONEER_600)
+	display@0 {
+		compatible = "solomon,ssd1306";
+		reg = <0>;
+		spi-max-frequency = <20000000>;
+		fsl,spi-sck-cs-delay = <70>;
+		buswidth = <8>;
+		spi-cpol;
+		spi-cpha;
+
+		reset-gpios = <&gpioh 3 GPIO_ACTIVE_HIGH>;
+
+		/*
+		 * The D/C pin is controlled with Pioneer's P27, which is not
+		 * accessible from STM32F7-SOM. We can access P0, so here we
+		 * control P0, and you should connect a wire from P0 to P27 on
+		 * the Pioneer board
+		 */
+		dc-gpios = <&gpiof 8 GPIO_ACTIVE_HIGH>;
+	};
+#endif
+};
+
+/*
+ * Audio interface
+ */
+&sai_2 {
+	#sound-dai-cells = <0>;
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_sai_2>;
+};
+
+/*
+ * LCD
+ */
+&ltdc {
+	status = "okay";
+	display = <&display>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_ltdc>;
+
+	display: display@0 {
+		bits-per-pixel = <32>;
+
+		display-timings {
+			native-mode = <&timing0>;
+			timing0: promate7 {
+				/*
+				 * The actual `clock-frequency` value is set in
+				 * U-Boot for now, with CONFIG_STM32_LTDC_PIXCLK
+				 */
+				clock-frequency = <12000000>;
+				hactive = <480>;
+				vactive = <272>;
+				hback-porch = <2>;
+				hfront-porch = <2>;
+				vback-porch = <2>;
+				vfront-porch = <2>;
+				hsync-len = <41>;
+				vsync-len = <10>;
+				hsync-active = <0>;
+				vsync-active = <1>;
+				pixelclk-active = <1>;
+			};
+		};
+	};
+};
+
+/*
+ * SD/MMC interface
+ */
+&sdio {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_sdio>;
+	cd-gpio = <&gpioi 3 GPIO_ACTIVE_LOW>;
+};
+
+/*
+ * Power control
+ */
+&pwr {
+	pwr-en-gpios = <&gpiof 10 GPIO_ACTIVE_HIGH>;
+};
+
+/*
+ * Real-Time clock
+ */
+&rtc {
+	status = "disabled";
+};

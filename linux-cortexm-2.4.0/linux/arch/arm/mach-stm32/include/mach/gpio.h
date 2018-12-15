@@ -1,0 +1,17 @@
+#ifndef _MACH_STM32_GPIO_H_
+#define _MACH_STM32_GPIO_H_
+
+#define STM32_GPIO_PORTS		11
+
+#define STM32_GPIO_MODER		0x00
+#define STM32_GPIO_TYPER		0x04
+#define STM32_GPIO_SPEEDR		0x08
+#define STM32_GPIO_PUPDR		0x0c
+#define STM32_GPIO_IDR			0x10
+#define STM32_GPIO_ODR			0x14
+#define STM32_GPIO_BSRR			0x18
+#define STM32_GPIO_LCKR			0x1c
+#define STM32_GPIO_AFRL			0x20
+#define STM32_GPIO_AFRH			0x24
+
+#endif

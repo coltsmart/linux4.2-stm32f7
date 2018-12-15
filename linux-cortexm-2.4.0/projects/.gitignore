@@ -1,0 +1,7 @@
+*.o
+moc_*.cpp
+*.uImage
+*.initramfs.processed
+minfs.initramfs
+*.cpio
+*.gdb

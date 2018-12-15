@@ -1,0 +1,6 @@
+https://emcraft.com/som/stm32f4-200/installing-activating-cde
+cd tools/
+tar -xvf arm-2010q1-189-arm-uclinuxeabi-i686-pc-linux-gnu.tar
+ln -s /usr/local/arm-2010q1 .
+source ACTIVATE.sh
+echo $MCU

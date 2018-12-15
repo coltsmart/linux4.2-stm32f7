@@ -1,0 +1,27 @@
+#!/bin/sh
+
+/bin/busybox --install -s
+. /etc/profile
+
+mount -a
+mkdir -p /dev/pts
+mount -t devpts devpts /dev/pts -ogid=5,mode=620
+
+# If U-Boot env has 'gui=yes', run GUI
+gui=`fw_printenv -n gui 2> /dev/null`
+if [ "${gui}" == "qt" -o "${gui}" == "yes" ]; then
+# If U-Boot env has 'touch', adjust touch calibration file
+    touch=`fw_printenv -n touch 2> /dev/null`
+    if [ "${touch}" == "kdctp" ]; then
+	ln -sf /etc/pointercal.kdctp /etc/pointercal
+    else
+	ln -sf /etc/pointercal.ucl-bsb.tn43 /etc/pointercal
+    fi
+    /etc/guistart.sh &
+fi
+/etc/netstart.sh &
+## Wait for networking to set up
+# sleep 2
+# mount -o nolock,rsize=1024 172.17.0.1:/home/vlad/test /mnt
+
+amixer -q sset 'Headphone' 50%,50% &
